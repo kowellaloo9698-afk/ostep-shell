@@ -1,3 +1,4 @@
 shell
 *.o
 a.out
+out.txt
