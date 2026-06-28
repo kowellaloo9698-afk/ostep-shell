@@ -1,4 +1,5 @@
 shell
 *.o
 a.out
+fruits.txt
 out.txt
