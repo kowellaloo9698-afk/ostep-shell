@@ -36,13 +36,16 @@ int main() {
         // --- DETECT REDIRECTION ---  must run AFTER tokenizing (needs the
         // finished array) and AFTER the empty-line guard (no tokens to scan
         // otherwise). Scan for ">" at ANY position, not a fixed index.
-        char *outfile = NULL;
+         char *infile=NULL;
+	 char *outfile = NULL;
         for (int i = 0; tokens[i] != NULL; i++) {
             if (strcmp(tokens[i], ">") == 0) {
                 outfile = tokens[i + 1];   // filename is the token after ">"
                 tokens[i] = NULL;          // amputate argv here — execvp stops at NULL
-                break;
-            }
+            }else if(strcmp(tokens[i],"<")==0){
+		infile=tokens[i+1];
+		tokens[i]=NULL;
+	    }
         }
 
         // --- BUILT-INS (run in the parent — their state must persist) ---
@@ -65,6 +68,12 @@ int main() {
                     dup2(fd, 1);       // slot 1 -> file (THIS is the redirect)
                     close(fd);         // drop the spare slot; slot 1 already points right
                 }
+		if(infile!=NULL){
+			int fd = open(infile, O_RDONLY);
+			if (fd<0){perror("open");exit(1);}
+			dup2(fd,0);
+			close(fd);
+		}
                 execvp(tokens[0], tokens);
                 perror("execvp");      // only reached if exec FAILED
                 exit(1);               // kill the failed child so it can't loop back
