@@ -56,6 +56,21 @@ int main() {
             exit(0);
         } else {
             // --- EXTERNAL COMMAND ---
+            int pipe_index=-1;
+	    for(int i=0;tokens[i]!=NULL;i++){
+		if(strcmp(tokens[i],"|")==0){
+                    pipe_index=i;
+		    break;
+		}
+
+	     }
+	    if(pipe_index!=-1){
+		tokens[pipe_index]=NULL;
+		char **left=tokens;
+		char **right=&tokens[pipe_index+1];
+		for (int i = 0; left[i]  != NULL; i++) printf("left[%d]  = %s\n", i, left[i]);
+		for (int i = 0; right[i] != NULL; i++) printf("right[%d] = %s\n", i, right[i]);
+		}
             pid_t rc = fork();
             if (rc < 0) {
                 perror("fork");        // fork failed — skip this command, keep the shell alive
