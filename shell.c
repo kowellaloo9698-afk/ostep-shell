@@ -22,7 +22,7 @@ int main() {
         char *tokens[64];
         int count = 0;
         char *tok = strtok(line, " ");
-        while (tok != NULL) {
+        while (tok != NULL && count < 63) {
             tokens[count] = tok;
             count++;
             tok = strtok(NULL, " ");
@@ -31,17 +31,40 @@ int main() {
 
         if (tokens[0] == NULL) continue;
 
+        // --- reject redirection combined with pipe (out of scope) ---
+        int has_pipe = 0;
+        int has_redir = 0;
+        for (int i = 0; tokens[i] != NULL; i++) {
+            if (strcmp(tokens[i], "|") == 0) has_pipe = 1;
+            if (strcmp(tokens[i], ">") == 0 || strcmp(tokens[i], "<") == 0) has_redir = 1;
+        }
+        if (has_pipe && has_redir) {
+            fprintf(stderr, "shell: redirection and pipe cannot be combined\n");
+            continue;
+        }
+
         char *infile = NULL;
         char *outfile = NULL;
         for (int i = 0; tokens[i] != NULL; i++) {
             if (strcmp(tokens[i], ">") == 0) {
+                if (tokens[i + 1] == NULL) {
+                    fprintf(stderr, "shell: expected filename after >\n");
+                    tokens[0] = NULL;
+                    break;
+                }
                 outfile = tokens[i + 1];
                 tokens[i] = NULL;
             } else if (strcmp(tokens[i], "<") == 0) {
+                if (tokens[i + 1] == NULL) {
+                    fprintf(stderr, "shell: expected filename after <\n");
+                    tokens[0] = NULL;
+                    break;
+                }
                 infile = tokens[i + 1];
                 tokens[i] = NULL;
             }
         }
+        if (tokens[0] == NULL) continue;
 
         if (strcmp(tokens[0], "cd") == 0) {
             if (tokens[1] == NULL) chdir(getenv("HOME"));
@@ -61,6 +84,11 @@ int main() {
                 tokens[pipe_index] = NULL;
                 char **left  = tokens;
                 char **right = &tokens[pipe_index + 1];
+
+                if (left[0] == NULL || right[0] == NULL) {
+                    fprintf(stderr, "shell: empty command near |\n");
+                    continue;
+                }
 
                 int fds[2];
                 if (pipe(fds) < 0) { perror("pipe"); continue; }
